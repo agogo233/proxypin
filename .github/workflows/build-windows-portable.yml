@@ -39,8 +39,15 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build and Package Windows Portable (ZIP)
-        run: flutter build windows --profile && flutter distribute --profile --target windows-zip
+      - name: Build Windows (Profile)
+        run: flutter build windows --profile
+
+      - name: Package as Portable (ZIP)
+        run: |
+          $buildDir = "build\windows\x64\profile\runner\Release"
+          $outputZip = "dist\ProxyPin-${{ steps.version.outputs.version }}-windows.zip"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path "$buildDir\*" -DestinationPath $outputZip -Force
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
