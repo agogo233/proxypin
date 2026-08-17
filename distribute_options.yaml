@@ -26,5 +26,3 @@ releases:
         package:
           platform: windows
           target: zip
-          build_args:
-            profile: true
