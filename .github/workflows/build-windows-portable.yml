@@ -40,14 +40,24 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows (Profile)
-        run: flutter build windows --profile
+        run: flutter build windows --profile -v
+        env:
+          FLUTTER_HOST: GitHub Actions
+          PUB_CACHE: ${{ runner.temp }}/.pub-cache
 
       - name: Package as Portable (ZIP)
+        if: success()
         run: |
           $buildDir = "build\windows\x64\profile\runner\Release"
+          if (-not (Test-Path $buildDir)) {
+            Write-Error "Build output not found at $buildDir"
+            exit 1
+          }
           $outputZip = "dist\ProxyPin-${{ steps.version.outputs.version }}-windows.zip"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Compress-Archive -Path "$buildDir\*" -DestinationPath $outputZip -Force
+          Write-Host "Created: $outputZip"
+          Get-ChildItem $buildDir | Select-Object Name, Length | Format-Table
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
