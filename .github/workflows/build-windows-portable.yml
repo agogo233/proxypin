@@ -1,0 +1,51 @@
+name: Build Windows Portable
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version from pubspec.yaml
+        id: version
+        shell: pwsh
+        run: |
+          $content = Get-Content pubspec.yaml -Raw
+          if ($content -match 'version:\s*([\d]+\.[\d]+\.[\d]+[+][\d]+)') {
+            echo "version=$($matches[1])" >> $env:GITHUB_OUTPUT
+          } else {
+            throw "Failed to parse version from pubspec.yaml"
+          }
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build and Package Windows Portable (ZIP)
+        run: flutter build windows --profile && flutter distribute --profile --target windows-zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProxyPin-Windows-${{ steps.version.outputs.version }}-portable
+          path: dist/*windows*.zip
+          retention-days: 90
+          if-no-files-found: error
