@@ -51,7 +51,7 @@ jobs:
 
       - name: Verify APK contains only arm64-v8a
         run: |
-          apk="build/app/outputs/flutter-apk/proxypin-android.apk"
+          apk="build/app/outputs/flutter-apk/app-release.apk"
           if [[ ! -f "$apk" ]]; then
             echo "APK not found at $apk" >&2
             exit 1
@@ -68,7 +68,7 @@ jobs:
 
       - name: Package APK
         run: |
-          apk="build/app/outputs/flutter-apk/proxypin-android.apk"
+          apk="build/app/outputs/flutter-apk/app-release.apk"
           output="dist/ProxyPin-${{ steps.version.outputs.version }}-android-arm64-v8a.apk"
           mkdir -p dist
           cp "$apk" "$output"
