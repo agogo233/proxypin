@@ -63,8 +63,11 @@ android {
     defaultConfig {
         applicationId "com.network.proxy"
         def abiFilterEnv = System.getenv('ANDROID_ABI_FILTER')
-        def androidAbiFilter = abiFilterEnv ? abiFilterEnv.split(',').toSet() : ['armeabi-v7a', 'arm64-v8a', 'x86_64'] as Set
-        ndk { abiFilters = androidAbiFilter }
+        def androidAbiFilter = abiFilterEnv ? abiFilterEnv.split(',').toList() : ['armeabi-v7a', 'arm64-v8a', 'x86_64']
+        ndk {
+            abiFilters.clear()
+            abiFilters.addAll(androidAbiFilter)
+        }
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
@@ -100,23 +103,6 @@ android {
 
 flutter {
     source '../..'
-}
-
-// Set a fixed APK name for release builds
-// Use the older ApplicationVariants API which is compatible across AGP versions
-android.applicationVariants.all { variant ->
-    if (variant.buildType.name == 'release') {
-        variant.outputs.all { output ->
-            def apkName = "proxypin-android.apk"
-            try {
-                // Newer output API
-                output.outputFileName = apkName
-            } catch (Exception e) {
-                // Fallback for older API
-                output.outputFile = new File(output.outputFile.parent, apkName)
-            }
-        }
-    }
 }
 
 dependencies {
