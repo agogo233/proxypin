@@ -43,12 +43,11 @@ jobs:
         run: flutter build windows --profile -v
         env:
           FLUTTER_HOST: GitHub Actions
-          PUB_CACHE: ${{ runner.temp }}/.pub-cache
 
       - name: Package as Portable (ZIP)
         if: success()
         run: |
-          $buildDir = "build\windows\x64\profile\runner\Release"
+          $buildDir = "build\windows\x64\runner\Profile"
           if (-not (Test-Path $buildDir)) {
             Write-Error "Build output not found at $buildDir"
             exit 1
