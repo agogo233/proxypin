@@ -1,0 +1,83 @@
+name: Build Android ARM64
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version from pubspec.yaml
+        id: version
+        shell: bash
+        run: |
+          content="$(cat pubspec.yaml)"
+          if [[ $content =~ version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+[+][0-9]+) ]]; then
+            echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Failed to parse version from pubspec.yaml" >&2
+            exit 1
+          fi
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build APK (ARM64)
+        run: flutter build apk --release --target-platform android-arm64
+
+      - name: Verify APK contains only arm64-v8a
+        run: |
+          apk="build/app/outputs/flutter-apk/proxypin-android.apk"
+          if [[ ! -f "$apk" ]]; then
+            echo "APK not found at $apk" >&2
+            exit 1
+          fi
+          libs="$(unzip -l "$apk" | grep -E '^\s+[0-9]+.* lib/([^/]+)/' || true)"
+          abis="$(echo "$libs" | sed -E 's/.* lib\/([^/]+)\/.*/\1/' | sort -u)"
+          echo "Native libraries found:"
+          echo "$libs"
+          if [[ "$abis" != "arm64-v8a" ]]; then
+            echo "ERROR: Expected only arm64-v8a ABI, found: $abis" >&2
+            exit 1
+          fi
+          echo "OK: Only arm64-v8a ABI present"
+
+      - name: Package APK
+        run: |
+          apk="build/app/outputs/flutter-apk/proxypin-android.apk"
+          output="dist/ProxyPin-${{ steps.version.outputs.version }}-android-arm64-v8a.apk"
+          mkdir -p dist
+          cp "$apk" "$output"
+          echo "Created: $output"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProxyPin-Android-arm64-${{ steps.version.outputs.version }}
+          path: dist/*android-arm64-v8a.apk
+          retention-days: 90
+          if-no-files-found: error
